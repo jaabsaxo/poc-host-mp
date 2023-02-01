@@ -1,7 +1,12 @@
 <html>
+
 <head>
   <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>
-</head>  
+  <script type="text/javascript">
+    console.log("version 1.0.0");
+  </script>
+</head>
+
 <body>
   <redoc spec-url="https://petstore.swagger.io/v2/swagger.json"></redoc>
   <div id="redoc-container">
@@ -11,5 +16,6 @@
   Redoc.init('http://petstore.swagger.io/v2/swagger.json', {
     scrollYOffset: 50
   }, document.getElementById('redoc-container'))
-  </script>
+</script>
+
 </html>
