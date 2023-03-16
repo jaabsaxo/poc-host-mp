@@ -1,0 +1,2117 @@
+openapi: 3.0.3
+info:
+  title: Model Portfolios
+  description: This exposes resources to manage model portfolios and connect them to accounts.
+  version: 0.0.1
+  contact:
+    name: OpenAPI Support
+    email: openapisupport@saxobank.com
+    url: https://openapi.help.saxo
+  license:
+    name: MIT
+    url: https://mit-license.org/
+  x-availability: external
+  x-updated: '2023-03-16T14:25:49.217Z'
+  x-hash: a1f713f9
+  x-bundled-config: external
+servers:
+  - url: https://gateway.saxobank.com/oapi
+    description: LIVE
+  - url: https://gateway.saxobank.com/sim/oapi
+    description: SIM
+externalDocs:
+  url: https://www.developer.saxo/
+  description: Visit the Developer Portal
+components:
+  securitySchemes:
+    OpenAPIOAuth2LIVE:
+      type: oauth2
+      description: OpenAPI is secured using OAuth2.0 Access and Refresh Tokens, which can be obtained through below methods. To use these authentication flows, make sure to register an application on the developer portal and obtain a `client_id` (and `client_secret`).
+      flows:
+        authorizationCode:
+          authorizationUrl: https://live.logonvalidation.net/authorize
+          tokenUrl: https://live.logonvalidation.net/token
+          scopes:
+            read: Required for GET operations.
+            write: Required for POST, PUT, PATCH, DELETE operations.
+        implicit:
+          authorizationUrl: https://live.logonvalidation.net/authorize
+          refreshUrl: https://live.logonvalidation.net/token
+          scopes:
+            read: Required for GET operations.
+            write: Required for POST, PUT, PATCH, DELETE operations.
+    OpenAPIOAuth2SIM:
+      type: oauth2
+      description: OpenAPI is secured using OAuth2.0 Access and Refresh Tokens, which can be obtained through below methods. To use these authentication flows, make sure to register an application on the developer portal and obtain a `client_id` (and `client_secret`).
+      flows:
+        authorizationCode:
+          authorizationUrl: https://sim.logonvalidation.net/authorize
+          tokenUrl: https://sim.logonvalidation.net/token
+          scopes:
+            read: Required for GET operations.
+            write: Required for POST, PUT, PATCH, DELETE operations.
+        implicit:
+          authorizationUrl: https://sim.logonvalidation.net/authorize
+          refreshUrl: https://sim.logonvalidation.net/token
+          scopes:
+            read: Required for GET operations.
+            write: Required for POST, PUT, PATCH, DELETE operations.
+    OpenAPIAccessToken:
+      type: http
+      description: |-
+        Requests to OpenAPI require an Access Token, which needs to be provided on each request in the `Authorization` header formatted as `Bearer {access-token}`. Access Tokens can be retrieved using one of the provided OAuth2.0 authorization flows. Ensure to select the correct auth/token URLs for the environment that you are working in.
+          
+        In case a `401 Unauthorized` response is returned, verify whether: 
+         - The request contains the `Authorization` header.  - The header is formatted
+        correctly as `Bearer {access-token}`. 
+         - The access token is not expired (typical lifetime for access tokens is 20
+        minutes). 
+         - The access token is for the correct environment (SIM and LIVE tokens cannot
+        be used interchangeably).
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    404NotFoundResponse:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
+    202AcceptedWithRequestInfo:
+      description: Accepted (Success)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RequestKeyObject'
+      headers:
+        X-Request-Key:
+          $ref: '#/components/headers/X-Request-Key'
+        X-Expect-After:
+          $ref: '#/components/headers/X-Expect-After'
+        Content-Location:
+          $ref: '#/components/headers/ContentLocation'
+    401UnauthorizedResponse:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UnauthorizedError'
+    403BForbiddenResponse:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ForbiddenError'
+    429TooManyRequests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TooManyRequestsError'
+    500InternalServerErrorResponse:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalServerError'
+    503ServiceUnavailableResponse:
+      description: Service Unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ServiceUnavailableError'
+  parameters:
+    ODataTop:
+      name: $top
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        example: 10
+      description: |-
+        The `$top` parameter controls the number of entities to be returned in the response.
+        The maximum number of entities that can be retrieved varies per resource.
+    ODataSkip:
+      name: $skip
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        example: 100
+      description: The `$skip` parameter controls the number of entities which will be excluded from the response, counting from the start of the list.
+    ODataFilter:
+      name: $filter
+      in: query
+      required: false
+      schema:
+        type: string
+        example: Currency eq USD
+      description: The `$filter` parameter facilitates refinement of a response by filtering for specific field values on each of the entities present in the list.
+    ODataSearch:
+      name: $search
+      in: query
+      required: false
+      schema:
+        type: string
+        example: Kim Larsen
+      description: The `$search` parameter provides free-text search functionality for list resources. This parameter will match against a specific subset of entity fields depending on the queried resources. If `$search` is used in conjunction with `$filter`, the response will only include entities that match both criteria.
+    ODataOrderby:
+      name: $orderby
+      in: query
+      required: false
+      schema:
+        type: string
+        example: ClientId desc
+      description: The `$orderby` parameter controls the sorting of entities in the response according to the chosen entity field.
+    ODataCount:
+      name: $count
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+        example: true
+      description: |-
+        The `$count` parameter controls whether the field `__count` is included at the root of the response.
+        If this parameter is set to `true`, the total number of (matching) entities within this resource is returned as value for `__count`.
+    ODataExpand:
+      name: $expand
+      in: query
+      style: form
+      explode: false
+      required: false
+      schema:
+        type: string
+        example: DisplayAndFormat,Greeks
+      description: |-
+        The `$expand` parameter controls which related resources are included in the response schema. Related resources available for expansion differ by endpoint and typically include additional contextual data such as `DisplayAndFormat`, or instrument-specific details such as `Greeks` (for listed options).
+        > Note: Fields selected using the `$select` parameter will not be included unless the resource is expanded first. Expanded resources are always included in full if no specific `$select` is set for certain sub-fields.
+    ODataSelect:
+      name: $select
+      in: query
+      style: form
+      explode: false
+      required: false
+      schema:
+        type: string
+        example: ClientId,DefaultCurrency
+      description: |-
+        The `$select` parameter controls which resource fields to include in the response data, allowing the consumer to choose only requisite fields and reduce overhead by excluding redundant fields.
+        > Note: Non-nullable (OAS `required: true`) fields are always returned in the response (typically entity identifiers). Fields in sub-resources can only be selected if the response is expanded first (see `$expand`).
+    ModelId:
+      name: ModelId
+      in: path
+      description: The `ModelId` is a unique string identifier for a specific `Model` object. It is used as the primary key for `Model` resources and is used for referencing, retrieving and updating `Model` resources.
+      required: true
+      schema:
+        $ref: '#/components/schemas/ModelId'
+    Version:
+      name: Version
+      in: query
+      description: The `Version` field is a string that represents the version of a `Model`. It is used to track changes made to the `Model` over time so that a user can retrieve and view specific versions. As a query parameter, `Version` can be used to request a specific version of a `Model`, such as `GET /models/{ModelId}?Version=11`. As an OData parameter, `VersionId` can be used in the `$filter` parameter to filter models based on version, such as `$filter=VersionId eq 11` to return only models with version 11.
+      required: false
+      schema:
+        $ref: '#/components/schemas/Version'
+    AccountKey:
+      name: AccountKey
+      in: path
+      description: Scrambled version of `AccountId` that uniquely identifies a Account entity and can be safely used in query string parameters and paths without exposing client information.
+      required: true
+      schema:
+        $ref: '#/components/schemas/AccountKey'
+    PropertyName:
+      name: PropertyName
+      in: path
+      description: The name of the property for which to retrieve keys and descriptions
+      required: true
+      schema:
+        $ref: '#/components/schemas/PropertyName'
+    PropertyValueScope:
+      name: PropertyValueScope
+      in: query
+      description: Defines scope of the property (MayAppear or CanBeSet)
+      required: false
+      schema:
+        $ref: '#/components/schemas/PropertyValueScope'
+    OwnerKey:
+      name: OwnerKey
+      in: query
+      description: The `ClientKey`of the owner, for which to receive available values.
+      schema:
+        $ref: '#/components/schemas/OwnerKey'
+    RequestKey:
+      name: RequestKey
+      in: path
+      description: Unique Identifier for the request.
+      required: true
+      schema:
+        $ref: '#/components/schemas/RequestKey'
+  schemas:
+    ModelId:
+      title: Model Id
+      type: string
+      description: The `ModelId` field is a unique identifier of a `Model` and can be used to retrieve a specific `Model` object. The `ModelId` can be used as a path parameter to retrieve a particular `Model` with `GET /models/{ModelId}` or as an OData parameter when requesting a list of `Model` objects with `GET /models`. When using OData, the `ModelId` can be used with the `$filter` parameter to specify the exact `ModelId` of the `Model`, such as `$filter=ModelId eq '11405'`. The `ModelId` can also be used with the `$search` parameter for a full-text search, such as `$search='11405'`. Finally, the `ModelId` can be used with the `$select` parameter to select only the `ModelId` field, such as `$select=ModelId`.
+      example: '1351221'
+    DisplayName:
+      title: Display Name
+      type: string
+      description: The `DisplayName` field is used to provide a descriptive name for the model. This field is used to identify the model in an intuitive manner, both in the UI as well as in API requests. The `DisplayName` field can be used as an OData parameter to filter, select or search for models. The `$filter` parameter can be used to filter models based on their `DisplayName`, such as `$filter=DisplayName eq 'US Top 100 ETFs'` to return models with this exact `DisplayName`. The `$search` parameter can be used for full-text search within the `DisplayName` field, such as `$search='Growth'` to return models with 'Growth' in the `DisplayName`. The `$select` parameter can be used to select which properties to include in the response body, such as `$select=ModelId,DisplayName,Description` to only return the model's id, `DisplayName` and description.
+      example: ESG Collection US 2024
+    Type:
+      title: Type
+      type: string
+      description: 'The `Type` field in the `Model` schema is an enum that can take two possible values: `Simple` or `Mixed`. A `Simple` model only comprises instruments and cash holdings and cannot be built from other models. On the other hand, a `Mixed` model contains other `Simple` and `Mixed` models, as well as instruments and cash holdings. To find models based on their type, you can use the `$filter` parameter and specify the condition `Type eq ''Simple''` to return only simple models or `Type eq ''Mixed''` to return only mixed models.'
+      enum:
+        - Simple
+        - Mixed
+      x-enum-descriptions:
+        Simple: Simple models are only composed of instruments and cannot be build from other models. See the field `Allocations` to see what instruments the model is created from and their individual weights.
+        Mixed: Mixed models can be composed from both instruments and other models. See the field `Allocations` to see what instruments and models this model is created from and their individual weights.
+      example: Simple
+    Description:
+      title: Description
+      type: string
+      description: The `Description` field is a string that summarizes the model for UI and filtering purposes. It briefly overviews the model, such as its focus, regions and instruments targeted, and type of risk. This field can be used with OData ($filter, $search, $select) parameters to search for models with specific descriptions. For example, an OData query such as `$filter=contains(Description, 'ESG')` can be used to return models with descriptions that contain the term 'ESG'.
+      example: ESG Focused Portfolio based on top 100 US ESG Stocks
+    ModelState:
+      title: State
+      type: string
+      description: The `ModelState` is an enumeration field which denotes the state of a `Model` object. It can have several possible values, including `Active`, `Inactive`, `Draft`, `PendingApproval`, `ScreeningRejected` and `Error`.
+      enum:
+        - Active
+        - Inactive
+        - Draft
+        - PendingApproval
+        - ScreeningRejected
+        - Error
+      x-enum-descriptions:
+        Active: Model is active and will rebalance positions on linked accounts according to details specified in `RebalancingInfo`.
+        Inactive: Model is inactive and will not rebalance linked accounts.
+        Draft: Model is in draft mode and will not rebalance linked accounts.
+        PendingApproval: Model is pending approval before its activated. Model will not rebalance linked accounts.
+        ScreeningRejected: '????????????????'
+        Error: Model is in error state.
+      example: Active
+    OwnerId:
+      title: Owner Id
+      description: The `OwnerId` field contains the unique identifier of the user that owns the model. This value can filter, select and search models owned by specific owners. The field `OwnerId` can be used with OData parameters such as `$filter`, `$search` and `$select`, such as `$filter=OwnerId eq '1602534'` to return only models owned by the user with `OwnerId` 1602534 in the `GET /models` operation.
+      type: string
+      example: '35151541'
+    RiskLevel:
+      title: Risk Level
+      type: string
+      description: The `RiskLevel` field stores the owner-defined risk level of the model portfolio as a string. This field can be used with OData parameters to filter, select, and search models. To filter models based on risk level, use the `$filter` parameter with a condition such as `RiskLevel eq 'High'` to return only models with a high risk level. To select specific properties of a model, use the `$select` parameter, such as `$select=ModelId,DisplayName,RiskLevel` to only return the model's id, display name and risk level. To search for models that contain certain keywords in the risk level, use the `$search` parameter, such as `$search='Low'` to return models with 'Low' in the risk level. Possible values can be found in the `Helpers` resource.
+      example: High
+    ManagementType:
+      title: Management Type
+      type: string
+      description: The `ManagementType` field is defined by the model's owner and can be used to filter and search for models. It is a string field, and its possible values can be found by using the operations in the `Helpers` resource. It can be used with OData parameters, such as `$filter=ManagementType eq 'Actively Managed'` or `$search='Actively Managed'` to find specific models.
+      example: Active
+    UIC:
+      title: Universal Instrument Code
+      description: |-
+        Integer representing a universal identifier that is used to mark a specific/unique Instrument.
+          
+        Can be used in combination with `AssetType` to uniquely identify an Instrument.
+      type: integer
+      format: int32
+      minimum: 1
+      example: 211
+    AssetType:
+      title: Asset Type
+      description: |-
+        Specifies the type of an Instrument.
+          
+        Note that each Instrument type in this enum might not necessarily available for every Client/User/Account entity, or on every resource.
+      type: string
+      enum:
+        - FXSpot
+        - FXSwap
+        - FXForward
+        - FXKnockInOption
+        - FXKnockOutOption
+        - FXNoTouchOption
+        - FXOneTouchOption
+        - FXVanillaOption
+        - FXBinaryOption
+        - FuturesContract
+        - FuturesOption
+        - FuturesStrategy
+        - StockIndexOption
+        - StockOption
+        - CFDOnCompanyWarrant
+        - CFDOnETC
+        - CFDOnETF
+        - CFDOnETN
+        - CFDOnFund
+        - CFDOnFutures
+        - CFDOnIndex
+        - CFDOnRights
+        - CFDOnStock
+        - CFDFuturesOption
+        - CFDIndexOption
+        - SRDOnETF
+        - SRDOnStock
+        - CBBCCategoryN
+        - CBBCCategoryR
+        - CertificateBonus
+        - CertificateCappedBonus
+        - CertificateCappedCapitalProtected
+        - CertificateCappedOutperformance
+        - CertificateConstantLeverage
+        - CertificateDiscount
+        - CertificateExpress
+        - CertificateTracker
+        - CertificateUncappedCapitalProtection
+        - CertificateUncappedOutperformance
+        - MiniFuture
+        - Warrant
+        - WarrantDoubleKnockOut
+        - WarrantKnockOut
+        - WarrantOpenEndKnockOut
+        - WarrantSpread
+        - InlineWarrant
+        - ETC
+        - ETN
+        - Stock
+        - Rights
+        - ETF
+        - Fund
+        - MutualFund
+        - Bond
+        - Cash
+        - StockIndex
+        - IPOOnStock
+        - PortfolioNote
+        - GuaranteeNote
+        - CompanyWarrant
+        - ContinuousFuturesContract
+      x-enum-descriptions:
+        FXSpot: |-
+          "On the spot" FX contract to buy or sell a currency cross at the prevailing spot price, which is commonly referred to as the exchange rate.  
+            
+          Typical spot date (value date) is T+2. Exceptions apply for FX crosses such as USDGPB, etc. See instrument details field `FxSpotDate`.
+            
+          ProductGroup: FX
+        FXForward: |-
+          FX Forward contract to buy or sell a currency cross at a set date in the future.
+            
+          Forward dates typically range from the spot date to one year in the future. See instrument details fields `FxForwardMinForwardDate` and `FxForwardMaxForwardDate`.
+                    
+          Pricing is based on the spot price.
+            
+          ProductGroup: FX
+        FXSwap: |-
+          FX Swap contract to exchange interest rate payments on different currencies.
+            
+          The near and far dates for these contracts are limited to the min and max forward dates (see FxForward).
+            
+          Pricing is based on the spot price.
+            
+          ProductGroup: FX
+        FXKnockInOption: |-
+          Remove?
+            
+          ProductGroup: FXO
+        FXKnockOutOption: |-
+          Remove?
+            
+          ProductGroup: FXO
+        FXNoTouchOption: |-
+          FX Option contract to pay a pre-defined payoff amount to the holder of the option if the spot rate does not hit a pre-defined barrier (also know as 'touch level') at any time before the expiry. 
+            
+          This is the inverse of a one-touch option.
+            
+          The price of a no-touch option is quoted in percentage points, calculated as the premium over the payoff (between 0% and 100%). This instrument can only be traded on quote.
+            
+          ProductGroup: FXO
+        FXOneTouchOption: |-
+          FX Option contract to pay a pre-defined payoff amount to the holder of the option if the spot rate hits a pre-defined barrier (also know as 'trigger' or 'touch level') at any time before the expiry. 
+            
+          This is the inverse of a no-touch option.
+            
+          The price of a one-touch option is quoted in percentage points, calculated as the premium over the payoff (between 0% and 100%). This instrument can only be traded on quote.
+            
+          ProductGroup: FXO
+        FXVanillaOption: |-
+          European-style vanilla FX Option contract to buy (Call) or sell (Put) a certain currency cross on the expiry date at a pre-defined strike price. Exercise method (settlement style) for these contracts can be spot (settles as a spot position on the account), or cash (converts to cash equivalent at the expiry). Expiry dates can be set as early as `FxSpotDate` +1 (TOM). This instrument can only be traded on quote.
+            
+          ProductGroup: FXO
+        FXBinaryOption: |-
+          Remove?
+            
+          ProductGroup: FXO
+        FuturesContract: |-
+          Futures Contract to buy or sell a pre-defined amount of the underlying instrument (typically a commodity, index, or other security) at the expiry date.
+            
+          The lot size of a Futures Contract is standardized and determines the nominal value of a position. See instrument details field `PriceToContractFactor` . Positions are automatically closed at the expiry or the First-Notice-Date (FND), depending on the instrument.
+            
+          Physical delivery is not supported (see (here)[https://www.home.saxo/rates-and-conditions/futures/trading-conditions] for more information).
+            
+          ProductGroup: ETD
+        FuturesOption: |-
+          American-style Futures Option contract to buy (Call) or sell (Put) a Futures Contract on or before the expiry date at a pre-defined strike price.
+            
+          ProductGroup: ETD
+        FuturesStrategy: |-
+          Futures Strategy (also called 'spread') contract to simultaneously buy and sell a position in a certain Futures Contract. A trade in a Futures Strategy results in two independent positions on the account (a long and a short leg).
+            
+          ProductGroup: ETD
+        StockIndexOption: |-
+          Stock Index Option contract to buy (Call) or sell (Put) a certain index on the expiry date at a pre-defined strike price.
+            
+          The size of a Stock Index Option is standardized (typically 100x index), and settlement style is always cash. Exercise style is typically European.
+            
+          ProductGroup: ETD
+        StockOption: |-
+          Stock Option contract to buy (Call) or sell (Put) a certain company's stock on or before the expiry date at a pre-defined strike price.
+            
+          The size of a Stock Option is standardized (typically 100 shares), and settlement style is always physical. Exercise style is typically American.
+            
+          ProductGroup: ETD
+        CFDOnCompanyWarrant: |-
+          Remove?
+            
+          ProductGroup: CFD
+        CFDOnETC: |-
+          Contract for Difference where the underlying instrument is an Exchange-Traded Commodity (see `ETC`).
+            
+          ProductGroup: CFD
+        CFDOnETF: |-
+          Contract for Difference where the underlying instrument is an Exchange-Traded Fund (see `ETF`).
+            
+          ProductGroup: CFD
+        CFDOnETN: |-
+          Contract for Difference where the underlying instrument is an Exchange-Traded Note (see `ETN`).
+            
+          ProductGroup: CFD
+        CFDOnFund: |-
+          Contract for Difference where the underlying instrument is a Fund (see `Fund`).
+            
+          ProductGroup: CFD
+        CFDOnFutures: |-
+          Contract for Difference where the underlying instrument is a commodity Futures Contract (see `FuturesContract`).
+            
+          ProductGroup: CFD
+        CFDOnIndex: |-
+          Contract for Difference where the underlying instrument is an index futures contract (see `FuturesContract`).
+            
+          ProductGroup: CFD
+        CFDOnRights: |-
+          Contract for Difference where the underlying instrument is Rights (see `Rights`).
+            
+          ProductGroup: CFD
+        CFDOnStock: |-
+          Contract for Difference where the underlying instrument is Stock (see Stock).
+            
+          ProductGroup: CFD
+        CFDFuturesOption: |-
+          Remove?
+            
+          ProductGroup: CFD
+        CFDIndexOption: |-
+          Remove?
+            
+          ProductGroup: CFD
+        SRDOnETF: |-
+          Deferred Settlement Service (Service de Règlement Différé - SRD) where the underlying instrument is Stock (see Stock).
+            
+          Deferred settlement is a mechanism that allows French clients to open (leveraged) positions for which settlement is postponed until the end of the stock market month on a number of eligible products (established by Euronext based on market capitalization and liquidity criteria).
+            
+          ProductGroup: CFD
+        SRDOnStock: |-
+          Deferred Settlement Service (Service de Règlement Différé - SRD) where the underlying instrument is an Exchange-Traded Fund (see Etf). Deferred settlement is a mechanism that allows French clients to open (leveraged) positions for which settlement is postponed until the end of the stock market month on a number of eligible products (established by Euronext based on market capitalization and liquidity criteria).
+            
+          ProductGroup: CFD
+        CBBCCategoryN: |-
+          CBBCCategoryN
+            
+          ProductGroup: SP
+        CBBCCategoryR: |-
+          CBBCCategoryR
+            
+          ProductGroup: SP
+        CertificateBonus: |-
+          CertificateBonus
+            
+          ProductGroup: SP
+        CertificateCappedBonus: |-
+          CertificateCappedBonus
+            
+          ProductGroup: SP
+        CertificateCappedCapitalProtected: |-
+          CertificateCappedCapitalProtected 
+            
+          ProductGroup: SP
+        CertificateCappedOutperformance: |-
+          CertificateCappedOutperformance
+            
+          ProductGroup: SP
+        CertificateConstantLeverage: |-
+          CertificateConstantLeverage
+            
+          ProductGroup: SP
+        CertificateDiscount: |-
+          CertificateDiscount
+            
+          ProductGroup: SP
+        CertificateExpress: |-
+          CertificateExpress
+            
+          ProductGroup: SP
+        CertificateTracker: |-
+          CertificateTracker
+            
+          ProductGroup: SP
+        CertificateUncappedCapitalProtection: |-
+          CertificateUncappedCapitalProtection
+            
+          ProductGroup: SP
+        CertificateUncappedOutperformance: |-
+          CertificateUncappedOutperformance
+            
+          ProductGroup: SP
+        MiniFuture: |-
+          MiniFuture
+            
+          ProductGroup: SP
+        Warrant: |-
+          Warrant
+            
+          Structured product entitling the holder to buy (Call) or sell (Put) the underlying instrument at a pre-determined strike price. Warrants typically have longer expiries than options.
+            
+          ProductGroup: SP
+        WarrantDoubleKnockOut: |-
+          WarrantDoubleKnockOut
+            
+          ProductGroup: SP
+        WarrantKnockOut: |-
+          WarrantKnockOut
+            
+          ProductGroup: SP
+        WarrantOpenEndKnockOut: |-
+          WarrantOpenEndKnockOut
+            
+          ProductGroup: SP
+        WarrantSpread: |-
+          WarrantSpread
+            
+          ProductGroup: SP
+        InlineWarrant: |-
+          InlineWarrant
+            
+          ProductGroup: SP
+        ETC: |-
+          Exchange-Traded Commodity
+            
+          ProductGroup: SP
+        ETN: |-
+          Exchange-Traded Note
+            
+          ProductGroup: SP
+        Stock: |-
+          Security that represents the ownership of a fraction of the issuing corporation, also known as 'equity', for which the amount is typically measured in units of 'shares'. Stock ownership entitles the holder to dividend payments and shareholder voting rights.
+            
+          ProductGroup: ETP
+        Rights: |-
+          Security that entitles the holder to a pre-determined number of shares per right, typically issued by companies to raise additional capital without diluting existing shareholders' fraction of ownership. These instruments have brief lifetimes and usually expire after 1 or 2 months.
+            
+          ProductGroup: ETP
+        ETF: |-
+          Pooled investment security that allows the holder to create exposure to a collection of instruments. ETFs typically track a index, sector, commodity, or other asset class.
+            
+          ProductGroup: ETP
+        Fund: |-
+          Pooled investment security that is traded on an exchange and allows the holder to create exposure in an investment fund (also called 'trust') which is managed according to a specific investment policy. Funds typically aim to provide exposure to a wide range of (alternative) assets such as real estate, infrastructure, and commodities.
+            
+          ProductGroup: ETP
+        MutualFund: 'ProductGroup: MF'
+        Bond: 'ProductGroup: DI'
+        Cash: |-
+          Cash
+            
+          ProductGroup: NTI
+        StockIndex: |-
+          StockIndex
+            
+          ProductGroup: NTI
+        IPOOnStock: |-
+          IPOOnStock
+            
+          ProductGroup: NTI
+        PortfolioNote: |-
+          PortfolioNote
+            
+          ProductGroup: NTI
+        GuaranteeNote: |-
+          GuaranteeNote
+            
+          ProductGroup: NTI
+        CompanyWarrant: |-
+          CompanyWarrant
+            
+          ProductGroup: NTI
+        ContinuousFuturesContract: |-
+          ContinuousFuturesContract
+            
+          ProductGroup: NTI
+      x-enum-deprecated:
+        FXBinaryOption: Should this be removed?
+        FXKnockInOption: Should this be removed?
+        FXKnockOutOption: Should this be removed?
+        CFDOnCompanyWarrant: Should this be removed?
+        CFDFuturesOption: Should this be removed?
+        CFDIndexOption: Should this be removed?
+      example: Stock
+    AllocationPct:
+      title: Instrument Allocation Percentage
+      description: The `AllocationPct` field is used to define the percentage of an account's holdings that will be allocated to a particular instrument or model. It is defined by the model's owner and can be used to find models with specific allocations of instruments and/or models. For example, to find models with an `AssetType` of `Stock` and a `AllocationPct` of 20%, you can use the `$filter` parameter with the condition `Allocations/any(a:a/AssetType eq 'Stock' and a/AllocationPct eq 20)`. The `$select`, `$search` and `$expand` parameters can also be used to further refine the results.
+      type: number
+      example: 0.3
+    MinimumAllocationPct:
+      title: Instrument Minimum Allocation Percentage
+      description: The `MinimumAllocationPct` field is a `number` that defines the minimum percentage allocation of an instrument or model within a portfolio. This field can be used to find models with specific minimum allocation percentages. For example, to find models with an `AssetType` of `Stock` and a `MinimumAllocationPct` of 5%, you can use the `$filter` parameter with the condition `Allocations/any(a:a/AssetType eq 'Stock' and a/MinimumAllocationPct eq 5)`. The `$select`, `$search` and `$expand` parameters can also be used to further refine the results.
+      type: number
+      example: 0.03
+    MaximumAllocationPct:
+      title: Instrument Maximum Allocation Percentage
+      description: The `MaximumAllocationPct` field is a number used to define the maximum amount of the portfolio (in percentage) that can be allocated to a specific instrument or model. This field can be used to find models with a specific `MaximumAllocationPct`. For example, to find models with an `AssetType` of `FXSpot` and a `MaximumAllocationPct` of 10%, you can use the `$filter` parameter with the condition `Allocations/any(a:a/AssetType eq 'FXSpot' and a/MaximumAllocationPct eq 10)`. The `$select`, `$search` and `$expand` parameters can also be used to further refine the results
+      type: number
+      example: 0.5
+    InstrumentsTemplate:
+      title: Instruments Template
+      description: The template defining the constituent instruments of the model. This schema is an array of paired `UIC`, `Weight` and `Locked` fields.
+      type: object
+      properties:
+        Uic:
+          $ref: '#/components/schemas/UIC'
+        AssetType:
+          $ref: '#/components/schemas/AssetType'
+        AllocationPct:
+          $ref: '#/components/schemas/AllocationPct'
+        MinimumAllocationPct:
+          $ref: '#/components/schemas/MinimumAllocationPct'
+        MaximumAllocationPct:
+          $ref: '#/components/schemas/MaximumAllocationPct'
+    Version:
+      title: Model Version
+      type: string
+      description: The `Version` field is used to track changes to a `Model`. Every time a `Model` is changed, a new `Version` of the `Model` is created. This allows users to track changes to the `Model` over time, as well as to select a specific `Version` of the `Model`.
+      example: '1'
+    ModelsTemplate:
+      title: Models Template
+      description: The template defining the constituent instruments of the model. This schema is an array of paired `UIC`, `Weight` and `Locked` fields.
+      type: object
+      properties:
+        ModelId:
+          $ref: '#/components/schemas/ModelId'
+        Version:
+          $ref: '#/components/schemas/Version'
+        AllocationPct:
+          $ref: '#/components/schemas/AllocationPct'
+    DocumentType:
+      title: Document Type
+      description: The `DocumentType` field is a string that defines the type of document associated with a `Model`. It is set by the model's owner and will be used in the `Documents` array to identify each document. This field can be used to filter, search, select and expand documents associated with a particular `Model`. For example, you can use the `$filter` parameter to specify a document type, such as `PDF` or `DOC` and the `$expand` parameter to return the associated documents, such as `$expand=Documents($filter=DocumentType eq 'DOC')`.
+      type: string
+      example: PDF
+    DocumentName:
+      title: Document Name
+      description: The `DocumentName` field is a string associated with each document schema in the `Documents` array. It is defined by the owner of the `Model` and is used to both identify the document and for UI purposes. This field can be used to filter, search, select and expand documents associated with a particular `Model`. For example, to search for documents with a specific name, use the `$search` OData parameter, such as `$search='prospect.pdf'`. To select only the `DocumentName` field for the documents associated with a `Model`, use the `$select` parameter, such as `$select=DocumentName`. To expand all documents associated with a `Model`, use the `$expand` parameter, such as `$expand=Documents`.
+      type: string
+      example: HelloWorld.pdf
+    Culture:
+      title: Culture Identifier
+      description: Culture identifier constructed from ISO 639-1 language identifier and ISO 3166-1 two-letter country code (capitalized), separated by a hyphen `-`.
+      type: string
+      pattern: ^[a-z]{2}-[A-Z]{2}$
+      example: en-US
+    SaxoDocHubDocumentId:
+      title: SaxoDocHubDocumentId
+      description: JAAB TO MAKE A DESCRIPTION
+      type: string
+      example: JAAB TO FIND AN EXAMPLE
+    DocumentSchema:
+      title: Document Schema
+      description: The `Documents` field is an array of documents schemas associated with a `Model`. Each document is identified by a `SaxoDocHubDocumentId` containing a type and name. Documents are usually sales materials, such as .pdf or .doc files, that explain the composition of a model or the strategy behind it. This field can be used to filter, search, select and expand documents associated with a particular `Model`.
+      type: object
+      properties:
+        OwnerId:
+          $ref: '#/components/schemas/OwnerId'
+        DocumentType:
+          $ref: '#/components/schemas/DocumentType'
+        DocumentName:
+          $ref: '#/components/schemas/DocumentName'
+        Culture:
+          $ref: '#/components/schemas/Culture'
+        SaxoDocHubDocumentId:
+          $ref: '#/components/schemas/SaxoDocHubDocumentId'
+    TagText:
+      title: Tag Text
+      description: The `Text` field is a simple string used for UI purposes and filtering/searching for specific models. It can be used to filter/search for models using the `$filter` or `$search` parameters, such as `$filter=Tags/any(d:d/Text eq 'ESG')` to return models tagged with "ESG" or `$search='Windmills'` to return models tagged with "Windmills".
+      type: string
+      example: ESG
+    TagType:
+      title: Tag Type
+      description: 'The `TagType` field is a string enum value which is used to indicate if the client owning the account connected to a model needs to parse the appropriateness test required for that model. It can be one of two options: `Required` or `Optional`. It can be used to filter models using the `$filter` parameter. For example, `$filter=TagType eq ''Required''` to return only models that have required tag types.'
+      type: string
+      enum:
+        - Optional
+        - Mandatory
+      x-enum-descriptions:
+        Optional: Models that are tagged with `Optional` tags puts no requirements on the clients of linked accounts with respect to having them parsing any appropriateness tests or any other screener.
+        Mandatory: Models that are tagged with `Mandatory` tags requires the clients who owns the linked accounts to parse appropriateness tests before any rebalancing can take place.
+      example: Optional
+    Tag:
+      title: Tag
+      type: object
+      description: 'JAAB: Add better description'
+      properties:
+        TagText:
+          $ref: '#/components/schemas/TagText'
+        TagType:
+          $ref: '#/components/schemas/TagType'
+    Comment:
+      title: Model Version Comment
+      type: string
+      description: The `Comment` field contains a short description/comment/string that explains what changed in a version or how its better. It can be used to filter, search and select models based on the comment field. For example, the `$filter` parameter can be used to return only models with the comment field containing a certain string, such as `$filter=VersionInfo/Comment eq 'Low Risk'` to return models with 'Low Risk' in the comment field. The `$search` parameter can also be used for full-text search within the comment field, such as `$search='Growth'` to return models with 'Growth' in the comment field. The `$select` parameter can be used to choose which fields to include in the response body, such as `$select=ModelId,VersionInfo/Comment` to only return the model's id and comment. Finally, the `$expand` parameter can be used to get the full `VersionInfo` object, such as `$expand=VersionInfo` to get the full versioning information for a model, including the comment field.
+      example: What a great model this is.
+    Date:
+      title: Model Version Created Date
+      description: The date this version was created.
+      type: string
+      example: '2022-10-10'
+    ModifiedBy:
+      title: Model Version Modified By
+      description: The `ModifiedBy` field contains the user id of the person who modified the `Model` object, creating a new version of the model. It can be used to filter, search and select models based on who modified them. For example, you can use the `$filter` parameter to return only models modified by a specific user, such as `$filter=VersionInfo/ModifiedBy eq '{UserId}'`. The `$search` parameter can be used to search within the user id, such as `$search='14331411'` to return models modified by users with '14331411' in their user id. The `$select` parameter can be used to choose which fields to include in the response body, such as `$select=ModelId,VersionInfo/ModifiedBy` to only return the model's id and the user who modified it. Finally, the `$expand` parameter can be used to get the full `VersionInfo` object, such as `$expand=VersionInfo` to get the full versioning information for a model, including the user who modified it.
+      type: string
+      example: '153113151'
+    VersionInfo:
+      title: Model Version Info
+      description: The `VersionInfo` field contains versioning information for a `Model` object, such as the version number, comment, date and user who modified the model. It can be used to filter, search and select models based on their versioning information. For example, you can use the `$filter` parameter to return only models with the latest version, such as `$filter=VersionInfo/Version eq '2'`. The `$search` parameter can be used to search within the comment field, such as `$search='Low Risk'` to return models with 'Low Risk' in the comment field. The `$select` parameter can be used to choose which fields to include in the response body, such as `$select=ModelId,VersionInfo` to only return the model's id and versioning information. Finally, the `$expand` parameter can be used to get the full `VersionInfo` object, such as `$expand=VersionInfo` to get the full versioning information for a model.
+      type: object
+      properties:
+        Version:
+          $ref: '#/components/schemas/Version'
+        Comment:
+          $ref: '#/components/schemas/Comment'
+        Date:
+          $ref: '#/components/schemas/Date'
+        ModifiedBy:
+          $ref: '#/components/schemas/ModifiedBy'
+    Currency:
+      title: Model Currency
+      type: string
+      description: The `Currency` field is part of the `FundingInfo` schema associated with each `Model` object. It indicates the currency type used in the `FundingMinimum` and `FundingMaximum` fields, which specify the minimum and maximum account balance required for the model to be connected to an account. It must be specified as a three-letter ISO 4217 currency code (e.g., USD for US Dollars). To retrieve `Models` with a particular currency type, use the `$filter` parameter, such as `$filter=FundingInfo/Currency eq 'USD'` to find models with a `Currency` of USD. You can also use the `$search` or `$select` parameters to further filter and search for models.
+      example: USD
+    FundingMinimum:
+      title: Model Minimum Funding
+      description: The `FundingMinimum` field is a numeric field that can be used to define the minimum amount of funds required for an account to be connected to a `Model`. This is specified in the `Currency` of the `FundingInfo` schema. When using the `GET /models` operation, the `$filter` parameter can be used to filter models by `FundingMinimum`, such as `$filter=FundingMinimum ge 100000` to return only models where the `FundingMinimum` is greater than or equal to 100000. Additionally, the `$select` parameter can be used to select only models that have a `FundingMinimum` greater than or equal to a given amount, such as `$select=ModelId,DisplayName,Description,FundingMinimum` to return only the model ids, display names, descriptions and the `FundingMinimum` of models where the `FundingMinimum` is greater than or equal to 100000.
+      type: number
+      example: 10000
+    FundingMaximum:
+      title: Model Maximum Funding
+      description: The `FundingMinimum` field is a numeric field that defines the minimum amount of funds that must be available in an account before it can be connected to the model. This field is defined in the model's `FundingInfo` schema in the currency specified by the `Currency` field. With the `GET /models` operation, this field can be used as a path parameter to filter for models with a specified `FundingMinimum` value, or with OData ($filter, $search, $select) parameters to filter, search and select the `FundingMinimum` of the returned models. An example of querying with the `FundingMinimum` field using the $filter parameter would be `$filter=FundingMinimum eq '1000000'`, which will return all models with a `FundingMinimum` of 1,000,000.
+      type: number
+      example: 1000000
+    AccountsUnderManagement:
+      title: Number Of Connected Accounts
+      description: The `AccountsUnderManagement` field is primarily used for filtering and UI purposes and tells how many accounts are currently connected to the model. The field can be used to get a list of models with a certain minimum or a maximum number of accounts connected. As an OData parameter, you can use `$filter=AccountsUnderManagement gt {number}` to get models with more than a certain number of accounts connected, `$filter=AccountsUnderManagement lt {number}` to get models with fewer than a certain number of accounts connected, or `$filter=AccountsUnderManagement eq {number}` to get models with exactly a certain number of accounts connected. Additionally, `$select=AccountsUnderManagement` can be used to return the number of accounts connected alongside other fields in the response body.
+      type: integer
+      example: 200
+    FundingInfo:
+      title: Model Funding Details
+      description: The `FundingInfo` schema holds all information about a models funding requirement. It has the fields `Currency`,  `FundingMinimum`, `FundingMaximum` and `AccountsUnderManagement`. The fields `Currency`, `FundingMinimum` and `FundingMaximum` are all related to the funding requirements for the account being connected to a model. If the account balance is below  `FundingMinimum` or above `FundingMaximum`, they cannot be connected to the model. The field `Currency` is the currency on the amounts in  `FundingMinimum` and `FundingMaximum`.
+      type: object
+      properties:
+        Currency:
+          $ref: '#/components/schemas/Currency'
+        FundingMinimum:
+          $ref: '#/components/schemas/FundingMinimum'
+        FundingMaximum:
+          $ref: '#/components/schemas/FundingMaximum'
+        AccountsUnderManagement:
+          $ref: '#/components/schemas/AccountsUnderManagement'
+    MinimumMaturityYears:
+      title: Model Minimum Years
+      description: The `MinimumMaturityYears` field specifies the lowest number of years to maturity of the bonds in the portfolio. It can be used with OData parameters, such as `$filter=MinimumMaturityYears eq 1` to return only models with bonds having a minimum maturity of 1 year. Additionally, the `MinimumMaturityYears` field can be selected using the `$select` parameter, such as `$select=MinimumMaturityYears` to only return the minimum maturity years of each model.
+      type: number
+      example: 5
+    MaximumMaturityYears:
+      title: Model Maximum Years
+      description: '`MaximumMaturityYears` is an optional field in the `BondsInfo` sub-schema of the `Model` resource which stores the highest number of years to maturity of the bonds in the portfolio. This field can be used with the `$filter` parameter to return `Model` objects with a maximum maturity years within a given range, such as `$filter=MaximumMaturityYears gt 10 and MaximumMaturityYears lt 20`. It can also be used with the `$search` parameter for full-text search, such as `$search=''MaximumMaturityYears:20''` to return models with 20 as the value of MaximumMaturityYears. Finally, it can be used to select which properties to include in the response body, with the `$select` parameter, such as `$select=ModelId,DisplayName,Description,BondsInfo/MaximumMaturityYears` to only return the model''s details and the maximum maturity years of the bonds in the portfolio.'
+      type: number
+      example: 30
+    BondsDuration:
+      title: Model Duration
+      description: The calculated duration of the bonds on the model.
+      type: number
+      example: 0.5
+    BondsInfo:
+      title: Model Bonds Details
+      description: '`BondsInfo` is a schema located on the root level of the `Model` resource, which contains information about the bonds within the portfolio. It has the children `MinimumMaturityYears`, `MaximumMaturityYears`, and `Currency`.  Clients can use OData to select `Model` resources based on the fields inside `BondsInfo`. For example, a client could filter to return models with minimum maturity years greater than 5, using the following OData filter: `$filter=BondsInfo/MinimumMaturityYears gt 5`. Similarly, a client could select only the `BondsInfo/MaximumMaturityYears` field of each model, using `$select=BondsInfo/MaximumMaturityYears`. By using the OData parameters, clients can effectively retrieve only those resources in `Model` which meet their specific needs.'
+      type: object
+      properties:
+        MinimumMaturityYears:
+          $ref: '#/components/schemas/MinimumMaturityYears'
+        MaximumMaturityYears:
+          $ref: '#/components/schemas/MaximumMaturityYears'
+        BondsDuration:
+          $ref: '#/components/schemas/BondsDuration'
+    Frequency:
+      title: Model Rebalancing Frequency
+      description: 'The `Frequency` field is an enum type that determines how often a model is rebalanced. This field can have three possible values: `Daily`, `Weekly` or `Monthly`. For instance, if you want to select only the models that are rebalanced monthly, you can use OData with a `$filter` query on `Frequency` equal to `Monthly`. An example of such query could be: `GET /models?$filter=Frequency eq ''Monthly''`.'
+      type: string
+      enum:
+        - Daily
+        - Weekly
+        - Monthly
+      x-enum-descriptions:
+        Daily: Model is rebalanced everyday
+        Weekly: Model is rebalanced weekly on the `RebalancingDay`.
+        Monthly: Model is rebalanced monthly on the `RebalancingDay`.
+      example: Weekly
+    RebalancingDay:
+      title: Model Rebalancing Day
+      description: '`RebalancingDay` is a field that represents the day of the period when rebalancing is scheduled to occur. It is a numeric value ranging from 1 to 30 for `Monthly` frequency and 1 to 7 for `Weekly` frequency (where 1 represents Monday). The `RebalancingDay` field always equals 1 for a `Daily` frequency. To use OData to select models with a `RebalancingDay` value equal to 1, you can specify the following filter:`$filter=RebalancingDay eq 1`'
+      type: integer
+      example: 1
+    TimeOfDay:
+      title: Model Rebalancing Time
+      description: 'The `TimeOfDay` field is a string that specifies the time in UTC when a rebalancing will occur. An example of how to select models with `TimeOfDay` equal to `00:00:00` in OData syntax is: ``` $filter=TimeOfDay eq ''00:00:00'' ```'
+      type: string
+      example: '10:10:10'
+    NextRebalanceDateTime:
+      title: Model Next Rebalance Time
+      description: 'The `NextRebalanceDateTime` is a datetime field formatted as a string. It represents the timestamp for the next rebalancing, expressed in UTC time. This field is primarily used for UI purposes. An example of using OData to find models that have a `NextRebalanceDateTime` equal to `2023-06-21T12:00:00.000` would be: `GET /models?$filter=NextRebalanceDateTime eq ''2023-06-21T12:00:00.000''`'
+      type: string
+      example: '2020-10-10T10:10:10.0000'
+    LastRebalanceDateTime:
+      title: Model Last Rebalance Time
+      description: |-
+        This field `LastRebalanceDateTime` is a DateTime formatted string representing the timestamp of the last rebalancing in UTC. It can be used in OData queries to find models with `LastRebalanceDateTime` equal to a specific DateTime (for example, `2023-01-01T00:00:00.000`). An example of the OData query that can be used is: 
+        `GET /models?$filter=LastRebalanceDateTime eq 2023-01-01T00:00:00.000` 
+        This query will return all models with `LastRebalanceDateTime` equal to `2023-01-01T00:00:00.000`. This field is primarily used for UI purposes.
+      type: string
+      example: '2019-10-10T10:10:10.0000'
+    RebalancingInfo:
+      title: Rebalancing Info
+      type: object
+      description: '`RebalancingInfo` is a schema on the root level of the `Model` object, which includes the following children: `Frequency`, `RebalancingDay`, `TimeOfDay`, `NextRebalanceDateTime`, and `LastRebalanceDateTime`. To select models that have `Frequency` equal to `Weekly` and `RebalancingDay` equal to 1, you can use the following OData query: ``` /Models?$filter=RebalancingInfo/Frequency eq ''Weekly'' and RebalancingInfo/RebalancingDay eq 1 ``` This will return a list of `Model` objects where the `RebalancingInfo` schema has a `Frequency` of `Weekly` and a `RebalancingDay` of 1 (which translates to every Monday).'
+      properties:
+        Frequency:
+          $ref: '#/components/schemas/Frequency'
+        RebalancingDay:
+          $ref: '#/components/schemas/RebalancingDay'
+        TimeOfDay:
+          $ref: '#/components/schemas/TimeOfDay'
+        NextRebalanceDateTime:
+          $ref: '#/components/schemas/NextRebalanceDateTime'
+        LastRebalanceDateTime:
+          $ref: '#/components/schemas/LastRebalanceDateTime'
+    ReviewedBy:
+      title: Reviewed By
+      description: The `ReviewedBy` field contains the `UserId` of the user who reviewed the model. To find models that a specific user reviewed, you can use the `$filter` parameter in the `GET /models` operation and set the filter condition to `ReviewedBy eq {UserId}`. For example, to retrieve all the models that were reviewed by the user with the `UserId` `11323111`, you can call the `GET /models?$filter=ReviewedBy eq '11323111'` endpoint.
+      type: string
+      example: '153113151'
+    ReviewComment:
+      title: Review Comment
+      description: |-
+        The `ReviewComment` is a string field that contains the comment made by the user who reviewed the `Model`. To find models based on the `ReviewComment`, you can use the `$filter` parameter in the `GET /models` operation and set the filter condition to `ReviewComment eq '{comment}'`, replacing `{comment}` with the specific comment you want to search for. For example, to retrieve all the models that have the comment `Great model, but maybe it has too much exposure to SVB?`, you can call the `GET /models?$filter=ReviewComment eq 'Great model, but maybe it has too much exposure to SVB?'` endpoint.
+        Alternatively, you can use the `$search` parameter for full-text search within the `ReviewComment` field, such as `$search='SVB'` to return models with `SVB` in their `ReviewComment`. For example, to retrieve all the models that have `SVB` in their `ReviewComment`, you can call the `GET /models?$search='SVB'` endpoint.
+      type: string
+      example: Incredible, just wow
+    ReviewDate:
+      title: ReviewDate
+      description: The `ReviewDate` field is a date-time field in UTC format that indicates when a`Model` was last reviewed. To find models that were reviewed before or after a specific date, you can use the `$filter` parameter in the `GET /models` operation and set the filter condition to `ReviewDate lt {date}` for models reviewed before a specific date or `ReviewDate gt {date}` for models reviewed after a specific date, where `{date}` is the date in ISO 8601 format. For example, to retrieve all the `Model` objects reviewed after August 1, 2021, you can call the `GET /models?$filter=ReviewDate gt 2021-08-01T00:00:00Z` endpoint.
+      type: string
+      example: '2022-09-29T06:18:38.123Z'
+    Reviews:
+      title: Reviews
+      description: Schema holding `ReviewedBy`, `ReviewComment` and `ReviewDate`.
+      type: object
+      properties:
+        ReviewedBy:
+          $ref: '#/components/schemas/ReviewedBy'
+        ReviewComment:
+          $ref: '#/components/schemas/ReviewComment'
+        ReviewDate:
+          $ref: '#/components/schemas/ReviewDate'
+    MoneyManagerFeeProfile:
+      title: Money Manager Fee Profile
+      description: JAAB TO MAKE A DESCRIPTION
+      type: string
+      example: JAAB TO FIND AN EXAMPLE
+    CommissionGroup:
+      title: Commission Group
+      description: JAAB TO MAKE A DESCRIPTION
+      type: string
+      example: JAAB TO FIND AN EXAMPLE
+    TurnOverFactor:
+      title: Turn Over Factor
+      description: JAAB TO FIND DESCRIPTION
+      type: number
+      example: 0.5
+    CostsInfo:
+      title: Model Costs
+      description: JAAB TO MAKE A DESCRIPTION
+      type: object
+      properties:
+        MoneyManagerFeeProfile:
+          $ref: '#/components/schemas/MoneyManagerFeeProfile'
+        CommissionGroup:
+          $ref: '#/components/schemas/CommissionGroup'
+        TurnOverFactor:
+          $ref: '#/components/schemas/TurnOverFactor'
+    HyperLink:
+      title: Hyper Link
+      description: Hyper links to pdf or other formats files that are needs to be linked with Model to provide additional information.
+      type: string
+      example: https://ultra-models.io/ESG2023-Prospect
+    LinkTitle:
+      title: Hyper Link Title
+      description: Hyper links to pdf or other formats files that are needs to be linked with Model to provide additional information.
+      type: string
+      example: Model Prospect 2023
+    NewOrdersSuspended:
+      title: New Orders Suspended
+      description: Emergency suspension to pause any new rebalance operations.
+      type: boolean
+      example: false
+    Model:
+      title: Model
+      description: Schema for individual models.
+      type: object
+      properties:
+        ModelId:
+          $ref: '#/components/schemas/ModelId'
+        DisplayName:
+          $ref: '#/components/schemas/DisplayName'
+        Type:
+          $ref: '#/components/schemas/Type'
+        Description:
+          $ref: '#/components/schemas/Description'
+        ModelState:
+          $ref: '#/components/schemas/ModelState'
+        OwnerId:
+          $ref: '#/components/schemas/OwnerId'
+        RiskLevel:
+          $ref: '#/components/schemas/RiskLevel'
+        ManagementType:
+          $ref: '#/components/schemas/ManagementType'
+        Allocations:
+          title: Allocations
+          description: The `Allocations` field is an array of objects defining an account's instruments and model allocations. If a model is of type `Simple`, the objects in the array will include `UIC` and `AssetType` fields. The objects will include `ModelId` and `Version` for a' Mixed' model. In both cases, the objects contain `AllocationPct`, `MinimumAllocationPct` and `MaximumAllocationPct` fields to define the allocations. This field can be used to find models with specific instruments and model allocations. For example, to find models with an `AssetType` of `Stock`, you can use the `$filter` parameter with the condition `Allocations/any(a:a/AssetType eq 'Stock')`. To find models with a specific `ModelId`, you can use the `$filter` parameter with the condition `Allocations/any(a:a/ModelId eq "{ModelId}")`. The `$select`, `$search` and `$expand` parameters can also be used to refine the results further.
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/InstrumentsTemplate'
+              - $ref: '#/components/schemas/ModelsTemplate'
+        Documents:
+          title: Documents
+          description: The `Documents` field is an array of documents schemas associated with a `Model`. Each document is identified by a `SaxoDocHubDocumentId` containing a type and name. Documents are usually sales materials, such as .pdf or .doc files, that explain the composition of a model or the strategy behind it. This field can be used to filter, search, select and expand documents associated with a particular `Model`.
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSchema'
+        Tags:
+          title: Tags Array
+          description: The `Tags` field is an array of tags generated by the owner of a model. Every tag has a `Text` and `TagType` field. `Text` field is used for UI purposes AND to filter/search for specific models. The 'TagType' field is used to pre-checks that the client owning the account connected to the model has parsed the appropriateness test required for that model.
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        VersionInfo:
+          $ref: '#/components/schemas/VersionInfo'
+        FundingInfo:
+          $ref: '#/components/schemas/FundingInfo'
+        BondsInfo:
+          $ref: '#/components/schemas/BondsInfo'
+        RebalancingInfo:
+          $ref: '#/components/schemas/RebalancingInfo'
+        Reviews:
+          title: Reviews
+          description: |-
+            `Reviews` is an array on the root level of the `Model` object. The items in the array are schemas with the fields `ReviewedBy`, `ReviewComment`, and `ReviewDate`. These fields are populated whenever a model is reviewed and a new item is appended to the `ReviewInfo` array. 
+            To find models reviewed within the past two months, iterate through the `Reviews` array for each model and compare the `ReviewDate` field to today's date minus two months. For example, if today's date is `2021-11-01`, you would compare the `ReviewDate` field to `2021-09-01`. If the `ReviewDate` is greater than or equal to `2021-09-01`, then the model was reviewed within the past two months.
+          type: array
+          items:
+            $ref: '#/components/schemas/Reviews'
+        CostsInfo:
+          $ref: '#/components/schemas/CostsInfo'
+        AdditionalResourceLinks:
+          description: Hyper links to pdf or other formats files that are needs to be linked with Model to provide additional information.
+          type: array
+          items:
+            type: object
+            properties:
+              HyperLink:
+                $ref: '#/components/schemas/HyperLink'
+              LinkTitle:
+                $ref: '#/components/schemas/LinkTitle'
+        NewOrdersSuspended:
+          $ref: '#/components/schemas/NewOrdersSuspended'
+    GetModelsResponse:
+      title: Get Models Response
+      description: Schema for Get `/models` endpoint. Returns `Data` envelope containing individual models.
+      type: object
+      properties:
+        Data:
+          title: Models
+          description: |-
+            The `Data` array contains a list of `Model` objects. The contents of the array depend on the OData parameters used in the GET `/models` request. To filter models by `OwnerId`, you can use the `$filter` parameter, such as `$filter=OwnerId eq '{ownerId}'`, where `{ownerId}` is the id of the owner. To search for models by their description, you can use the `$search` parameter, such as `$search='description keyword'`. 
+            Here are two examples of using these parameters together: 
+              - To retrieve all models owned by a specific owner: `GET
+            /models?$filter=OwnerId eq '{ownerId}'&$count=true` 
+              - To retrieve all models with the word 'Growth' in their description: `GET
+            /models?$search='Growth'&$count=true`
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+    StandardRequestValidationErrorCodes:
+      title: Standard Request Validation Error Codes
+      description: Standard error codes which may be returned on any request returning af 400 Bad Request Http request.
+      type: object
+      properties:
+        ErrorCode:
+          type: string
+          enum:
+            - InvalidHeader
+            - InvalidModelState
+            - InvalidRequest
+          x-enum-descriptions:
+            InvalidHeader: Invalid or missing header.
+            InvalidModelState: One or more parameters in the request body or query string are missing or invalid.
+            InvalidRequest: Default error returned, when it cannot be determined which part of the request is malformed.
+    ErrorResponseBase:
+      title: Error Response base
+      description: Base schema for error responses.
+      type: object
+      properties:
+        Message:
+          title: Error Message
+          description: Human-readable, translated error message that can be displayed to the end user.
+          type: string
+        Instance:
+          title: Instance
+          description: |-
+            Unique API response instance identifier which can be used to trace the request/response operation.
+            This value should be shared with the OpenAPI Support team in case assistance is required with this error.
+          type: string
+      required:
+        - ErrorCode
+        - Message
+        - Instance
+    ErrorPointer:
+      title: Error Pointer
+      description: Error Pointer schema that contains the information identifying the location and error present in the request.
+      type: object
+      properties:
+        Field:
+          title: Field
+          description: Field name for which error occurred.
+          type: string
+          example: AssetType
+        Message:
+          title: Message
+          description: Error message for this field.
+          type: string
+          example: Provided value for AssetType is invalid.
+      required:
+        - Field
+        - Message
+    Errors:
+      title: Error Pointer Array
+      description: Optional array of `Error Pointer` objects, indicating which part of the request contains incorrect data.
+      type: array
+      items:
+        $ref: '#/components/schemas/ErrorPointer'
+      example:
+        - Field: TBD
+          Message: TBD
+    ErrorPointerArrayExtension:
+      title: Error Pointer Array Extension
+      description: Schema for optional `Errors` array in error response.
+      type: object
+      properties:
+        Errors:
+          $ref: '#/components/schemas/Errors'
+    RequestValidationError:
+      title: Request Validation Error
+      description: Schema for error type ValidationError.
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/StandardRequestValidationErrorCodes'
+        - $ref: '#/components/schemas/ErrorResponseBase'
+        - $ref: '#/components/schemas/ErrorPointerArrayExtension'
+      example:
+        ErrorCode: InvalidModelState
+        Message: One or more properties of the request are invalid.
+        Instance: a28f1e27de364fa199bb489192ad0087#109#20a022c4-7e76-4d66-aeef-79d94eaebd3e#81
+        Errors:
+          - Field: ClientId
+            Message: Invalid value provided.
+          - Field: AssetType
+            Message: Field 'AssetType' is required and cannot be null.
+          - Field: Amount
+            Message: Type 'string' is not valid for field 'Amount'.
+    NotFoundError:
+      title: Not Found Error
+      description: Schema for error type Not Found.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            ErrorCode:
+              title: Not Found Error Code
+              description: Error code for Not Found responses.
+              type: string
+              enum:
+                - NotFound
+              x-enum-descriptions:
+                InternalServerError: The requested resource cannot be found. Please review provided parameters and/or permissions of the requesting user.
+              example: NotFound
+        - $ref: '#/components/schemas/ErrorResponseBase'
+      example:
+        ErrorCode: NotFound
+        Message: The requested resource cannot be found. Please review provided parameters and/or permissions of the requesting user.
+        Instance: a28f1e27de364fa199bb489192ad0087#109#20a022c4-7e76-4d66-aeef-79d94eaebd3e#81
+    AccountKey:
+      title: Account Key
+      description: Scrambled version of `AccountId` that uniquely identifies an Account entity and can safely be used in path and query parameters without exposing client information. Should not be displayed to the end user.
+      type: string
+      format: byte
+      example: ZXhhbXBsZS1hY2NvdW50LWtleQ==
+      x-cogen-external-datatype: Iit.OAPI.Framework.Core.AccountKey
+    AccountId:
+      title: Account ID
+      description: Unique identifier of a Account entity.
+      type: string
+      example: 532200_INET
+      x-cogen-external-datatype: Iit.OAPI.Framework.Core.AccountId
+    ClientId:
+      title: Client ID
+      description: Unique identifier of a Client entity.
+      type: string
+      example: '1602534'
+      x-cogen-external-datatype: Iit.OAPI.Framework.Core.ClientId
+    ClientKey:
+      title: Client Key
+      description: Scrambled version of `ClientId` that uniquely identifies a Client entity and can safely be used in paths and query parameters without exposing client information. Should not be displayed to the end user.
+      type: string
+      format: byte
+      example: ZXhhbXBsZS1hY2NvdW50LWdyb3VwLWtleQ==
+      x-cogen-external-datatype: Iit.OAPI.Framework.Core.ClientKey
+    AccountConnectionState:
+      title: Account Connection State
+      description: Account Connection State  xxx
+      type: string
+      enum:
+        - Activated
+        - PendingActivation
+        - Liquidating
+        - Liquidated
+        - SuitabilityPending
+        - PendingPortfolioMigration
+        - BlockedOnSuitability
+        - MinimumFundingAwaited
+      x-enum-descriptions:
+        Activated: Activated
+        PendingActivation: PendingActivation
+        Liquidating: Liquidating
+        Liquidated: Liquidated
+        SuitabilityPending: SuitabilityPending
+        PendingPortfolioMigration: PendingPortfolioMigration
+        BlockedOnSuitability: BlockedOnSuitability
+        MinimumFundingAwaited: MinimumFundingAwaited
+      example: Activated
+    RebalancingStatus:
+      title: RebalancingStatus
+      description: JAAB TO MAKE A DESCRIPTION
+      type: string
+      enum:
+        - Active
+        - Paused
+      x-enum-descriptions:
+        Active: Active
+        Paused: Paused
+      example: Active
+    UTCDateTime:
+      title: UTC DateTime
+      description: ISO 8601 representation of datetime, always in UTC timezone (`Z`) with 3-decimal precision for milliseconds.
+      type: string
+      format: date-time
+      pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{3}Z$
+      example: '2022-09-29T06:18:38.123Z'
+    MinimumAccountValueRequired:
+      title: MinimumAccountValueRequired
+      description: JAAB TO MAKE A DESCRIPTION (added the parenthesis to avoid linting error)
+      type: number
+      example: 10000
+    AccountRebalancingInfo:
+      title: AccountRebalancingInfo
+      description: JAAB TO MAKE A DESCRIPTION
+      type: object
+      properties:
+        RebalancingStatus:
+          $ref: '#/components/schemas/RebalancingStatus'
+        StartDate:
+          $ref: '#/components/schemas/UTCDateTime'
+        EndDate:
+          $ref: '#/components/schemas/UTCDateTime'
+        MinimumAccountValueRequired:
+          $ref: '#/components/schemas/MinimumAccountValueRequired'
+        LockedInstruments:
+          title: Locked Instruments
+          description: JAAB TO MAKE A DESCRIPTION
+          type: array
+          items:
+            title: LockedInstrument
+            description: Instrument UIC and AssetType
+            type: object
+            properties:
+              AssetType:
+                $ref: '#/components/schemas/AssetType'
+              UIC:
+                $ref: '#/components/schemas/UIC'
+    AccountConnection:
+      title: Account Connections
+      description: JAAB TO MAKE A DESCRIPTION
+      type: object
+      properties:
+        ModelId:
+          $ref: '#/components/schemas/ModelId'
+        DisplayName:
+          $ref: '#/components/schemas/DisplayName'
+        Version:
+          $ref: '#/components/schemas/Version'
+        AccountId:
+          $ref: '#/components/schemas/AccountId'
+        AccountKey:
+          $ref: '#/components/schemas/AccountKey'
+        ClientId:
+          $ref: '#/components/schemas/ClientId'
+        ClientKey:
+          $ref: '#/components/schemas/ClientKey'
+        OwnerId:
+          $ref: '#/components/schemas/OwnerId'
+        OwnerKey:
+          $ref: '#/components/schemas/ClientKey'
+        AccountConnectionState:
+          $ref: '#/components/schemas/AccountConnectionState'
+        AccountRebalancingInfo:
+          $ref: '#/components/schemas/AccountRebalancingInfo'
+    ConditionType:
+      title: Condition Type
+      description: Possible types of conditions.
+      type: string
+      enum:
+        - 2FA
+        - 4Eyes
+        - Advise
+      example: 2FA
+      x-enum-descriptions:
+        2FA: Must approved with 2FA
+        4Eyes: Must be approved by someone else than the requester
+        Advise: This request is part of an Advise, which must be approved separately.
+    ConditionStatus:
+      title: Condition Status
+      description: Status of the condition
+      type: string
+      enum:
+        - ResolvedMet
+        - ResolvedUnMet
+        - UnResolved
+      example: ResolvedMet
+      x-enum-descriptions:
+        ResolvedMet: not null
+        ResolvedUnMet: not null
+        UnResolved: not null
+    PutAccountConnectionsRequestBody:
+      title: Put AccountConnections Response
+      description: Schema for responses on PUT operation on account connection
+      type: object
+      properties:
+        ModelId:
+          $ref: '#/components/schemas/ModelId'
+        Version:
+          $ref: '#/components/schemas/Version'
+        LockedInstruments:
+          title: Locked Instruments
+          description: JAAB TO MAKE A DESCRIPTION
+          type: array
+          items:
+            title: LockedInstrument
+            description: JAAB TO MAKE A DESCRIPTION
+            type: object
+            properties:
+              AssetType:
+                $ref: '#/components/schemas/AssetType'
+              UIC:
+                $ref: '#/components/schemas/UIC'
+        Conditions:
+          title: Conditions
+          description: JAAB TO MAKE A DESCRIPTION
+          type: array
+          items:
+            type: object
+            properties:
+              ConditionType:
+                $ref: '#/components/schemas/ConditionType'
+              ConditionStatus:
+                $ref: '#/components/schemas/ConditionStatus'
+    X-Request-Key-Optional:
+      title: X-Request-Key
+      description: Request Key, if the caller want to find the request for audit purposes.
+      type: string
+      example: e3e56065-0082-4aa8-82e1-c4c9e70bca79
+    X-Request-Key:
+      title: X-Request-Key
+      description: Request Key, to be used when tracking progress for the request.
+      type: string
+      example: e3e56065-0082-4aa8-82e1-c4c9e70bca79
+    X-Expect-After:
+      title: X-Expect-After
+      description: Hint that the requested operation may be completed after this number of milliseconds.
+      type: integer
+      format: int32
+      example: 30000
+    RelativeUrl:
+      title: Relative URL
+      description: Relative URL string.
+      type: string
+      format: relative-url
+      example: /relative/url/location
+    RequestKey:
+      title: Id of the Request
+      description: Id of the request.
+      type: string
+      example: e3e56065-0082-4aa8-82e1-c4c9e70bca78
+    RequestKeyObject:
+      title: Request Key Object
+      description: Response including RequestKey field
+      type: object
+      properties:
+        RequestKey:
+          $ref: '#/components/schemas/RequestKey'
+    PropertyName:
+      title: Property Name
+      description: The name of the property
+      type: string
+      example: CountryCode
+    PropertyValueScope:
+      title: Property Value Scope
+      description: |-
+        Allows caller to limit the values returned to:
+          - **CanBeSet**: Under some circumstances the caller may be able to provide 
+          this value when creating or updating a resource.
+          - **MayAppear**: Can appear in the list of possible values.
+      type: string
+      enum:
+        - CanBeSet
+        - MayAppear
+      x-enum-descriptions:
+        CanBeSet: Under some circumstances the caller may be able to provide this value when creating or updating a resource
+        MayAppear: Can appear in the list of possible values.
+      example: MayAppear
+    OwnerKey:
+      title: Owner Key
+      description: Scrambled version of `OwnerId` that uniquely identifies an `Owner`, and which can be safely used in query string parameters and paths without exposing client information.
+      type: string
+      example: 3c6IRkgx2TP09ynoie5MfA==
+    PropertyType:
+      title: Property Type
+      description: |-
+        Defines the type of the property:
+          
+        - **Enum**: A field in which different string values have different distinct meanings. All such possible values are documented within the API documentation, and change infrequently.
+          
+        - **Key**: A field in which different string values have different meanings. The list is not documented in the API and it is often quite dynamic.
+      type: string
+      enum:
+        - Enumeration
+        - Key
+      x-enum-descriptions:
+        Enumeration: A fixed set of values, also declared as an enumeration within the OAS specification
+        Key: A value matching a list configured in Saxo's system.
+      example: Enumeration
+    PropertyStability:
+      title: PropertyStability
+      description: Maybe useful to indicate if this field can be trusted for anything but "display".
+      type: string
+      enum:
+        - Stable
+        - Volatile
+      x-enum-descriptions:
+        Stable: Value will change seldomly, and can possibly be used for programmatic decisions/classifications
+        Volatile: Value will change often, but you may use the returned descriptions of display purposes.
+      example: Volatile
+    PropertyEntry:
+      title: PropertyEntry
+      type: object
+      description: Represents on possible value for a property.
+      properties:
+        Key:
+          title: Key
+          type: string
+          description: The identifier of a particular enumeration value or option entry.
+          example: x-wytwa
+        Description:
+          title: Description
+          description: A localized description of the meaning of this property value, often intended for possible display directly to the end user.
+          type: string
+          example: TBD
+        ShortDescription:
+          title: Short Description
+          description: A **short** localized description of the meaning of this property value, often intended for possible display directly to the end user.
+          type: string
+          example: TBD
+        PropertyValueScope:
+          $ref: '#/components/schemas/PropertyValueScope'
+    PropertyDescription:
+      title: Property Description
+      description: |-
+        Describes some properties in the our OpenAPI contracts, which are represented as a string with "special" meaning. These include:
+          - Enumerations, which are documented directly in the API and
+          - Keys, which are of more dynamic nature
+      type: object
+      properties:
+        PropertyName:
+          $ref: '#/components/schemas/PropertyName'
+        PropertyType:
+          $ref: '#/components/schemas/PropertyType'
+        Stability:
+          $ref: '#/components/schemas/PropertyStability'
+        Values:
+          type: array
+          description: A list of Key-Value pairs for the specified property
+          items:
+            $ref: '#/components/schemas/PropertyEntry'
+    UserKey:
+      title: User Key
+      description: Scrambled version of `UserId` that uniquely identifies a User entity and can be safely used in query string parameters and paths without exposing client information.
+      type: string
+      format: byte
+      example: ZXhhbXBsZS11c2VyLWtleQ==
+      x-cogen-external-datatype: Iit.OAPI.Framework.Core.UserKey
+    UserId:
+      title: User ID
+      description: Unique identifier of a User entity.
+      type: string
+      example: '16371609'
+      x-cogen-external-datatype: Iit.OAPI.Framework.Core.UserId
+    RequestMethod:
+      title: Request Method
+      description: The HTTP request method used to invoke the endpoint
+      type: string
+      enum:
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+      example: POST
+      x-enum-descriptions:
+        POST: HTTP Post.
+        PUT: HTTP Put.
+        PATCH: HTTP Patch.
+        DELETE: HTTP Delete.
+    RequestUrl:
+      title: Request Url
+      description: |-
+        The Url through which this request was placed.
+          
+        Includes any path-parameters.
+          
+        **BJO TBD* Not sure if it should include any query parameters as well - not sure if such exist actually?
+      type: string
+      format: uri
+      example: https://gateway.saxobank.com/...
+    RequestStatus:
+      title: Request Status
+      description: Describes the current status of the request
+      type: string
+      enum:
+        - Failed
+        - Completed
+        - ReadyToExecute
+        - Executing
+        - PendingConditions
+        - Rejected
+      example: Completed
+      x-enum-descriptions:
+        Failed: Response will include detailed error information in a generalized format.
+        Completed: Successfully completed. Response will return request specific information.
+        ReadyToExecute: All conditions have been met and request can now start executing.
+        Executing: Entered very shortly after the "ReadyToExecute" state, **BJO maybe we don't need it, considering that we also have ReadyToExecute?""
+        PendingConditions: Request is waiting for conditions to be met.
+        Rejected: Request was rejected due to condition being rejected. **BJO** Maybe roll this into a general failure, which would also include Request was stuck for a while and 'timed out'.
+    ResponseStatusCode:
+      title: Response Status Code
+      description: The HTTP response status code, if the request has completed.
+      type: integer
+      format: int32
+      example: 201
+    RequestMetaInformation:
+      title: Request Meta Information
+      description: Meta information about a request.
+      type: object
+      properties:
+        RequestKey:
+          $ref: '#/components/schemas/RequestKey'
+        _RequestTime:
+          allOf:
+            - $ref: '#/components/schemas/UTCDateTime'
+        _RequestUserKey:
+          allOf:
+            - $ref: '#/components/schemas/UserKey'
+        _RequestUserId:
+          allOf:
+            - $ref: '#/components/schemas/UserId'
+        _RequestMethod:
+          allOf:
+            - $ref: '#/components/schemas/RequestMethod'
+        _RequestUrl:
+          allOf:
+            - $ref: '#/components/schemas/RequestUrl'
+        _RequestStatus:
+          allOf:
+            - $ref: '#/components/schemas/RequestStatus'
+        _ResponseStatusCode:
+          allOf:
+            - $ref: '#/components/schemas/ResponseStatusCode'
+        _LastUpdatedTime:
+          allOf:
+            - $ref: '#/components/schemas/UTCDateTime'
+    PutAccountConnectionsResponse:
+      title: Put AccountConnections Response
+      description: Schema for responses on PUT operation on account connection
+      type: object
+      properties:
+        ModelId:
+          $ref: '#/components/schemas/ModelId'
+        Version:
+          $ref: '#/components/schemas/Version'
+        LockedInstruments:
+          title: Locked Instruments
+          description: JAAB TO MAKE A DESCRIPTION
+          type: array
+          items:
+            title: LockedInstrument
+            description: JAAB TO MAKE A DESCRIPTION
+            type: object
+            properties:
+              AssetType:
+                $ref: '#/components/schemas/AssetType'
+              UIC:
+                $ref: '#/components/schemas/UIC'
+        Conditions:
+          title: Conditions
+          description: JAAB TO MAKE A DESCRIPTION
+          type: array
+          items:
+            type: object
+            properties:
+              ConditionType:
+                $ref: '#/components/schemas/ConditionType'
+              ConditionStatus:
+                $ref: '#/components/schemas/ConditionStatus'
+    EmployeePostResponse:
+      title: Employee Post response
+      description: This is what is returned in response to a successful user creation request.
+      type: object
+      properties:
+        UserId:
+          $ref: '#/components/schemas/UserId'
+        UserKey:
+          $ref: '#/components/schemas/UserKey'
+    Request:
+      title: Request
+      description: Full information about request and response.
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/RequestMetaInformation'
+        - type: object
+          properties:
+            Request:
+              type: object
+              oneOf:
+                - $ref: '#/components/schemas/PutAccountConnectionsResponse'
+                - $ref: '#/components/schemas/PutAccountConnectionsResponse'
+            Response:
+              type: object
+              oneOf:
+                - $ref: '#/components/schemas/EmployeePostResponse'
+                - $ref: '#/components/schemas/RequestValidationError'
+    UnauthorizedError:
+      title: Unauthorized Error
+      description: Schema for error type Unauthorized.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            ErrorCode:
+              title: Unauthorized Error Code
+              description: Error code for Unauthorized responses.
+              type: string
+              enum:
+                - Unauthorized
+              x-enum-descriptions:
+                Unauthorized: 'Request is not Authorized. Please ensure the ''Authorization'' header contains a valid access token in the following format: ''Bearer {access-token}''.'
+              example: Unauthorized
+        - $ref: '#/components/schemas/ErrorResponseBase'
+      example:
+        ErrorCode: Unauthorized
+        Message: 'Request is not Authorized. Please ensure the ''Authorization'' header contains a valid access token in the following format: ''Bearer {access-token}''.'
+        Instance: a28f1e27de364fa199bb489192ad0087#109#20a022c4-7e76-4d66-aeef-79d94eaebd3e#81
+    ForbiddenError:
+      title: Forbidden Error
+      description: Schema for error type Forbidden.
+      allOf:
+        - type: object
+          properties:
+            ErrorCode:
+              title: Forbidden Error Code
+              description: Error code for Forbidden responses.
+              type: string
+              enum:
+                - Forbidden
+              x-enum-descriptions:
+                Forbidden: Request is not allowed. User does not have required permissions or configuration to access the requested data.
+              example: Forbidden
+        - $ref: '#/components/schemas/ErrorResponseBase'
+      example:
+        ErrorCode: Forbidden
+        Message: Request is not allowed. User does not have required permissions or configuration to access the requested data.
+        Instance: a28f1e27de364fa199bb489192ad0087#109#20a022c4-7e76-4d66-aeef-79d94eaebd3e#81
+    TooManyRequestsError:
+      title: Too Many Requests Error
+      description: Schema for error type Too Many Requests.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            ErrorCode:
+              title: Too Many Requests Error Code
+              description: Error code for Too Many Requests responses.
+              type: string
+              enum:
+                - TooManyRequests
+              x-enum-descriptions:
+                TooManyRequests: The request cannot be fulfilled because the service is currently unavailable. Please notify the OpenAPI Support team if this error persists (and include the Instance identifier below).
+              example: TooManyRequests
+        - $ref: '#/components/schemas/ErrorResponseBase'
+      example:
+        ErrorCode: TooManyRequests
+        Message: The number of requests received for this operation exceeds the rate limit. Please review the request rate and observe the X-RateLimit headers on the response for further details on how to throttle requests.
+        Instance: a28f1e27de364fa199bb489192ad0087#109#20a022c4-7e76-4d66-aeef-79d94eaebd3e#81
+    InternalServerError:
+      title: Internal Server Error
+      description: Schema for error type Internal Server Error.
+      allOf:
+        - type: object
+          properties:
+            ErrorCode:
+              title: ISE Error Code
+              description: Error code for Internal Server Error responses.
+              type: string
+              enum:
+                - InternalServerError
+              x-enum-descriptions:
+                InternalServerError: The request cannot be completed because the service encountered an unexpected error. Please notify the OpenAPI Support team if this error persists (and include the 'Instance' identifier below).
+              example: InternalServerError
+        - $ref: '#/components/schemas/ErrorResponseBase'
+      example:
+        ErrorCode: InternalServerError
+        Message: The request cannot be completed because the service encountered an unexpected error. Please notify the OpenAPI Support team if this error persists (and include the 'Instance' identifier below).
+        Instance: a28f1e27de364fa199bb489192ad0087#109#20a022c4-7e76-4d66-aeef-79d94eaebd3e#81
+    ServiceUnavailableError:
+      title: Service Unavailable Error
+      description: Schema for error type Service Unavailable.
+      type: object
+      allOf:
+        - type: object
+          properties:
+            ErrorCode:
+              title: Service Unavailable Error Code
+              description: Error code for Service Unavailable responses.
+              type: string
+              enum:
+                - ServiceUnavailable
+              x-enum-descriptions:
+                ServiceUnavailable: The request cannot be fulfilled because the service is currently unavailable. Please notify the OpenAPI Support team if this error persists (and include the 'Instance' identifier below).
+              example: ServiceUnavailable
+        - $ref: '#/components/schemas/ErrorResponseBase'
+      example:
+        ErrorCode: ServiceUnavailable
+        Message: The request cannot be fulfilled because the service is currently unavailable. Please notify the OpenAPI Support team if this error persists (and include the 'Instance' identifier below).
+        Instance: a28f1e27de364fa199bb489192ad0087#109#20a022c4-7e76-4d66-aeef-79d94eaebd3e#81
+  headers:
+    X-Request-Key-Optional:
+      schema:
+        $ref: '#/components/schemas/X-Request-Key-Optional'
+    X-Request-Key:
+      schema:
+        $ref: '#/components/schemas/X-Request-Key'
+    X-Expect-After:
+      schema:
+        $ref: '#/components/schemas/X-Expect-After'
+    ContentLocation:
+      description: |-
+        Location header containing a relative URL pointing at the created/updated entity, which can be used to retrieve the entity after the change has succeeded. 
+          
+        See [RFC 2616](https://www.rfc-editor.org/rfc/rfc2616#section-14.14) and [RFC 5789](https://www.rfc-editor.org/rfc/rfc5789#section-2.1) for reference.
+      schema:
+        $ref: '#/components/schemas/RelativeUrl'
+tags:
+  - name: Account Connections
+    description: The `AccountConnection` resource stores the connection between an account and a model when a model is assigned to manage a portfolio. The `AccountConnection` schema holds the `AccountId`, `ModelId`, `ClientId` (the account owner) and `OwnerId` (the model owner). Additionally, owners of accounts can "Lock" certain instruments and only allow the `Model` to rebalance the rest - this information is stored in the `LockedInstruments` field alongside other related information in the `RebalancingInfo` field. Version 3 of Modelportfolios features conditional assignments of models to accounts, allowing for asset management flows where certain conditions must be met before the `Model` begins rebalancing the account. For more information on managing this, see the `PUT /accountconnections/{AccountKey}` docs.
+    x-availability: external
+  - name: Helpers
+    description: The `Helpers` resource provides operations to assist with certain Modelportfolios features and operations. It includes an operation to get the available values for certain fields in the `Model` object, such as `RiskLevel`, `ManagementType`, `MoneyManagerFeeProfile` and `Tags`.  Its primarily used  to find values for these fields to use with Odata filtering and search.
+    x-availability: external
+  - name: Models
+    description: The `Model` resource is a template portfolio and rebalancing schema that can be used to manage an account's positions and cash holdings. Models can be `Simple` (only composed of instruments and cash) or `Mixed` (composed of other `Simple` and `Mixed` models). The `Allocations` array defines the specific allocation template of instruments and/or models, and accounts connected to a model will be automatically rebalanced according to the `RebalancingInfo` parameters, such as `RebalancingFrequency`. To support UIs, the `Model` schema also includes `DisplayName`, `Description` and `AdditionalResourceLinks` fields, plus several sub-schemas for associated costs, filtering/searching, review and versioning information.
+    x-availability: external
+  - name: Requests
+    description: The `Requests` resource manages asynchronous requests, such as those associated with `AccountConnections`. It contains fields such as `RequestKey`, `Request`, `Response`, `RequestStatus`, and `_Conditions`, which store information on the original request, its response, and any associated conditions. This resource can also be used to track the progress of conditional assignments of models to accounts using the `RequestKey` returned by the `PUT /accountconnections/{AccountKey}` operation.
+    x-availability: external
+paths:
+  /modelportfolios/v3/models:
+    get:
+      summary: List models
+      operationId: get-models
+      description: '`GET /models` operation allows users to retrieve the list of `Model` objects. The response body will contain an array of `Model` objects, each containing the model''s id, display name, description and associated resource links. Additional OData path parameters can be used to filter, select and search models. Filtering uses the `$filter` parameter to specify conditions based on the model''s properties, such as `Type eq ''Simple''` to return only Simple models or `RiskLevel eq ''Low''` to return only models with a low risk level. Use the `/helpers` resources to see what values can be used for `RiskLevel`, `ManagementType` and `ComissionProfile`. Selection uses the `$select` parameter to define which properties to include in the response body, such as `$select=ModelId,DisplayName,Description` to only return the model''s id, display name and description. Searching uses the `$search` parameter for full-text search within the model''s display name and description, such as `$search=''Growth''` to return models with ''Growth'' in the display name or description.'
+      tags:
+        - Models
+      parameters:
+        - $ref: '#/components/parameters/ODataTop'
+        - $ref: '#/components/parameters/ODataSkip'
+        - $ref: '#/components/parameters/ODataFilter'
+        - $ref: '#/components/parameters/ODataSearch'
+        - $ref: '#/components/parameters/ODataOrderby'
+        - $ref: '#/components/parameters/ODataCount'
+        - $ref: '#/components/parameters/ODataExpand'
+        - $ref: '#/components/parameters/ODataSelect'
+      security:
+        - OpenAPIAccessToken:
+            - write
+        - OpenAPIOAuth2SIM:
+            - write
+        - OpenAPIOAuth2LIVE:
+            - write
+      responses:
+        '200':
+          description: OK (Success)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetModelsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RequestValidationError'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403BForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailableResponse'
+      x-availability: external
+  /modelportfolios/v3/models/{ModelId}:
+    get:
+      summary: Get model
+      operationId: get-model
+      description: The `GET /models/{ModelId}` operation allows users to retrieve a single `Model` object based on its `ModelId` and, optionally, a `VersionId` query parameter. The response body will contain the `Model` object, including its id, display name, description and associated resource links. If a `VersionId` query parameter is provided, the response body will contain the `Model` object with the corresponding version. If no `VersionId` is provided, the response body will contain the `Model` object with the latest version.
+      tags:
+        - Models
+      parameters:
+        - $ref: '#/components/parameters/ModelId'
+        - $ref: '#/components/parameters/Version'
+      security:
+        - OpenAPIAccessToken:
+            - write
+        - OpenAPIOAuth2SIM:
+            - write
+        - OpenAPIOAuth2LIVE:
+            - write
+      responses:
+        '200':
+          description: OK (Success)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Model'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RequestValidationError'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403BForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailableResponse'
+      x-availability: external
+  /modelportfolios/v3/accountconnections/{AccountKey}:
+    get:
+      summary: Get accountconnection
+      operationId: get-accountconnections
+      description: Find connections between accounts and models
+      tags:
+        - Account Connections
+      parameters:
+        - $ref: '#/components/parameters/AccountKey'
+      security:
+        - OpenAPIAccessToken:
+            - write
+        - OpenAPIOAuth2SIM:
+            - write
+        - OpenAPIOAuth2LIVE:
+            - write
+      responses:
+        '200':
+          description: OK (Created)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountConnection'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RequestValidationError'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403BForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailableResponse'
+      x-availability: external
+    put:
+      summary: Connect Account
+      operationId: put-accountconnections
+      description: Find connections between accounts and models
+      tags:
+        - Account Connections
+      parameters:
+        - $ref: '#/components/parameters/AccountKey'
+      security:
+        - OpenAPIAccessToken:
+            - write
+        - OpenAPIOAuth2SIM:
+            - write
+        - OpenAPIOAuth2LIVE:
+            - write
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutAccountConnectionsRequestBody'
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Request-Key:
+              $ref: '#/components/headers/X-Request-Key-Optional'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountConnection'
+        '202':
+          $ref: '#/components/responses/202AcceptedWithRequestInfo'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RequestValidationError'
+                  - $ref: '#/components/schemas/AccountConnection'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403BForbiddenResponse'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailableResponse'
+      x-availability: external
+    delete:
+      summary: Delete AccountConnection
+      operationId: delete-accountconnections
+      description: Delete connections between accounts and models
+      tags:
+        - Account Connections
+      parameters:
+        - $ref: '#/components/parameters/AccountKey'
+      security:
+        - OpenAPIAccessToken:
+            - write
+        - OpenAPIOAuth2SIM:
+            - write
+        - OpenAPIOAuth2LIVE:
+            - write
+      responses:
+        '200':
+          description: OK (Success)
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RequestValidationError'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403BForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailableResponse'
+      x-availability: external
+  /modelportfolios/v3/helpers/{PropertyName}:
+    put:
+      summary: Single Property
+      operationId: get-helpers
+      x-required-permissions:
+        - permission: OAPI.OP.View
+          description: Allow view-access to the authenticated client
+      description: |-
+        Get a list of possible values and descriptions for the specific enumeration or key field used by resources in this service group.
+        Use `PropertyValueScope` to filter the list:
+          - `CanBeSet`: Under some circumstances the caller may be able to provide this value when creating or updating a resource.
+          - `MayAppear`: Return all possible values for the enumeration of key.
+      tags:
+        - Helpers
+      security:
+        - OpenAPIAccessToken:
+            - read
+        - OpenAPIOAuth2SIM:
+            - read
+        - OpenAPIOAuth2LIVE:
+            - read
+      parameters:
+        - $ref: '#/components/parameters/PropertyName'
+        - $ref: '#/components/parameters/PropertyValueScope'
+        - $ref: '#/components/parameters/OwnerKey'
+      responses:
+        '200':
+          description: OK (Success)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyDescription'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RequestValidationError'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403BForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailableResponse'
+      x-availability: external
+  /modelportfolios/v3/requests/{RequestKey}:
+    put:
+      summary: Single Request
+      operationId: get-requests
+      x-required-permissions:
+        - permission: OAPI.OP.View
+          description: Allow view-access to the authenticated client
+        - permission: OAPI.OP.ViewOwnedClients
+          description: Allow view-access to the clients in the hierarchy
+      description: |
+        Fetch the status and optionally the original request body and response for requests made in this service group.
+
+        Access to the request is provided to:
+          - The user placing the request
+          - The user with access to the user placing the request
+          - The user with access to the client or account affected by the request.
+
+        The whole request object is considered PII data.
+        To get any PII data, the caller must be the user placing the request or have the View_PII data operation against the affected entity.
+
+        > Note you cannot call this endpoint to get information about a request which as created via some other service group.
+        > Instead you may go to the RequestManagement service group, where you can retrieve the status on any request.
+      tags:
+        - Requests
+      security:
+        - OpenAPIAccessToken:
+            - read
+        - OpenAPIOAuth2SIM:
+            - read
+        - OpenAPIOAuth2LIVE:
+            - read
+      parameters:
+        - $ref: '#/components/parameters/RequestKey'
+      responses:
+        '200':
+          description: OK (Success)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RequestValidationError'
+        '401':
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/403BForbiddenResponse'
+        '404':
+          $ref: '#/components/responses/404NotFoundResponse'
+        '429':
+          $ref: '#/components/responses/429TooManyRequests'
+        '500':
+          $ref: '#/components/responses/500InternalServerErrorResponse'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailableResponse'
+      x-availability: external
